@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿ using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using System.Net.Http.Json; // For JSON
 using System.Text;
@@ -16,7 +16,7 @@ namespace ApiGateway.Controllers
         {
             var client = new HttpClient();
             var response = await client.GetAsync("https://ipwho.is/9.9.9.9");
-
+            
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
@@ -24,6 +24,20 @@ namespace ApiGateway.Controllers
             }
 
             return StatusCode((int)response.StatusCode, "Failed to fetch data.");
+        }
+
+        [HttpGet("cryptoCurrency")]
+        public async Task<IActionResult> GetPrice()
+        {
+            var client = new HttpClient();
+            var response = await client.GetAsync("https://api.coinlore.net/api/ticker/?id=90");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return Ok(content);
+            }
+
+            return StatusCode((int)response.StatusCode, "Failed to fetch data");
         }
     }
 }

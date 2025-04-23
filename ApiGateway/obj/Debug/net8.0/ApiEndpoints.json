@@ -1,6 +1,16 @@
 [
   {
     "ContainingType": "ApiGateway.Controllers.APIServices",
+    "Method": "GetPrice",
+    "RelativePath": "api/APIServices/cryptoCurrency",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ApiGateway.Controllers.APIServices",
     "Method": "GetResult",
     "RelativePath": "api/APIServices/ip",
     "HttpMethod": "GET",
