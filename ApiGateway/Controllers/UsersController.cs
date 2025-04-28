@@ -27,10 +27,24 @@ namespace ApiGateway.Controllers
             return Ok(Guid.NewGuid().ToString());
         }
 
-        [HttpPost("Login")]
-        public IActionResult Login()
+        [HttpPost("login")]
+        public IActionResult PostLogin([FromForm] string username, [FromForm] string password)
         {
-            return Ok();
+            var client = new HttpClient();
+
+            var formData = new Dictionary<string, string>
+            {
+                { "username", username },
+                { "password", password }
+            };
+            Console.WriteLine("Received post req");
+
+            if (formData["username"] == "admin" && formData["password"] == "1234")
+            {
+                return Ok(Guid.NewGuid().ToString());
+            }
+
+            return Unauthorized(new { Message = "Wrong username or password" });
         }
     }
 }

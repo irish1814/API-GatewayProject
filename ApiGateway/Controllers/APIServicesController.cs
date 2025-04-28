@@ -9,7 +9,7 @@ namespace ApiGateway.Controllers
     // http://localhost:5182/api/APIServices
     [Route("api/[controller]")]
     [ApiController]
-    public class APIServices : Controller
+    public class APIServicesController : Controller
     {
         [HttpGet("ip")]
         public async Task<IActionResult> GetResult()
@@ -31,6 +31,7 @@ namespace ApiGateway.Controllers
         {
             var client = new HttpClient();
             var response = await client.GetAsync("https://api.coinlore.net/api/ticker/?id=90");
+            
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
