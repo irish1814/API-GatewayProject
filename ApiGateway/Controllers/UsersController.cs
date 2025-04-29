@@ -78,7 +78,7 @@ namespace ApiGateway.Controllers
         {
             Console.WriteLine("Received post req");
 
-            var user = users.FirstOrDefault(u => (u.Email == email || u.Name == username) && u.Password == password);
+            var user = users.FirstOrDefault(u => u.Email == email && u.Password == password);
 
             if (user != null)
             {
