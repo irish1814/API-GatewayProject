@@ -11,26 +11,43 @@ namespace ApiGateway.Controllers
     [ApiController]
     public class APIServicesController : Controller
     {
-        [HttpGet("ip")]
-        public async Task<IActionResult> GetResult()
+        [HttpPost("agent")]
+        public async Task<IActionResult> AskLAIAgent([FromForm] string prompt)
         {
-            var client = new HttpClient();
-            var response = await client.GetAsync("https://ipwho.is/9.9.9.9");
-            
-            if (response.IsSuccessStatusCode)
+            var payload = new
             {
-                var content = await response.Content.ReadAsStringAsync();
-                return Ok(content);
+                prompt = prompt,
+                stream = false
+            };
+
+            var jsonPayload = new StringContent(
+                JsonSerializer.Serialize(payload),
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var client = new HttpClient();
+            var response = await client.PostAsync("http://localhost:11434/api/generate", jsonPayload);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                return StatusCode((int)response.StatusCode, errorContent);
             }
 
-            return StatusCode((int)response.StatusCode, "Failed to fetch data.");
+            var llamaResponse = await response.Content.ReadAsStringAsync();
+
+            return Ok(llamaResponse);
         }
 
-        [HttpGet("cryptoCurrency")]
-        public async Task<IActionResult> GetPrice()
+        /*
+         * Get info of a crypto currency using its ID from the API Service - coinlore
+         */
+        [HttpPost("Currency")]
+        public async Task<IActionResult> GetCryptoCurrencyInfo([FromForm]int id)
         {
             var client = new HttpClient();
-            var response = await client.GetAsync("https://api.coinlore.net/api/ticker/?id=90");
+            var response = await client.GetAsync("https://api.coinlore.net/api/ticker/?id=" + id);
             
             if (response.IsSuccessStatusCode)
             {

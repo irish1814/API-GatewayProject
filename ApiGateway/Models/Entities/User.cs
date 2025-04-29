@@ -14,5 +14,8 @@ namespace ApiGateway.Models.Entities
         public required string Email { get; set; }
 
         public required string Password { get; set; }
+
+        [DisplayName("API Key: ")]
+        public Guid apiKey{ get; set; }
     }
 }
