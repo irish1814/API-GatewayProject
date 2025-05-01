@@ -13,8 +13,9 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.AI.Ollama" Version="9.4.3-preview.1.25230.7" />
 		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.1" />
-		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.1"/>
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.1" />
 	</ItemGroup>
 	
 </Project>

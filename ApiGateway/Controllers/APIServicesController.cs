@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using ApiGateway.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
+
 
 namespace ApiGateway.Controllers
 {
@@ -39,30 +41,23 @@ namespace ApiGateway.Controllers
             if (user == null)
                 return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
 
-            var payload = new
+            IChatClient chatClient = new OllamaChatClient(endpoint: new Uri("http://192.168.33.51:11434"), modelId: "tinyllama:latest");
+            List<ChatMessage> chatHistory = [];
+
+            chatHistory.Add(new ChatMessage(ChatRole.User, prompt));
+
+            var response = "AI Agent Response: ";
+
+            await foreach (var item in chatClient.GetStreamingResponseAsync(chatHistory))
             {
-                prompt = prompt,
-                stream = false
-            };
-
-            var jsonPayload = new StringContent(
-                JsonSerializer.Serialize(payload),
-                Encoding.UTF8,
-                "application/json"
-            );
-
-            var client = new HttpClient();
-            var response = await client.PostAsync("http://localhost:11434/api/generate", jsonPayload);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                return StatusCode((int)response.StatusCode, errorContent);
+                Console.Write(item.Text);
+                response += item.Text;
             }
 
-            var llamaResponse = await response.Content.ReadAsStringAsync();
+            chatHistory.Add(new ChatMessage(ChatRole.Assistant, response));
+            Console.WriteLine();
 
-            return Ok(llamaResponse);
+            return Ok(new { AgentResponse = response });
         }
 
         /// <summary>
