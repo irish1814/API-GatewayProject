@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Text;
 using System.Text.Json;
 using ApiGateway.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -79,12 +78,14 @@ namespace ApiGateway.Controllers
                 return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
             }
 
+            // Step 1: Fetch Currency data from CoinLore
             var client = new HttpClient();
             var response = await client.GetAsync("https://api.coinlore.net/api/ticker/?id=" + id);
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
+                var priceHistory = new List<PriceHistory>();
 
                 try
                 {
@@ -92,22 +93,46 @@ namespace ApiGateway.Controllers
                     if (data != null && data.Count > 0)
                     {
                         var item = data[0];
+                        var nameId = item["nameid"]?.ToString()?.ToLower();
+                        var symbol= item["symbol"]?.ToString();
+                        var price = item["price_usd"]?.ToString();
 
-                        if (item.TryGetValue("price_usd", out var priceValue) &&
-                            item.TryGetValue("symbol", out var symbolValue) &&
-                            decimal.TryParse(priceValue?.ToString(), out decimal price))
+                        // Step 2: Fetch historical data from CoinGecko
+                        var chartUrl = $"https://api.coingecko.com/api/v3/coins/{nameId}/market_chart?vs_currency=usd&days=1";
+                        var chartResponse = await client.GetAsync(chartUrl);
+                        
+                        if (!chartResponse.IsSuccessStatusCode)
                         {
+                            // Fallback: Query local DB for historical prices
+                            var oneDayAgo = DateTime.UtcNow.AddDays(-1);
+                            var localHistory = await _db.PriceHistories.Where(p => p.CryptoId == id && p.Timestamp >= oneDayAgo).OrderByDescending(p => p.Timestamp).ToListAsync();
+                            return Ok(new { currencyData = content, currencyHistory = localHistory });
+                        }
+
+                        var chartContent = await chartResponse.Content.ReadAsStringAsync();
+
+                        var chartJson = JsonDocument.Parse(chartContent);
+                        var prices = chartJson.RootElement.GetProperty("prices");
+
+                        foreach (var pricePoint in prices.EnumerateArray())
+                        {
+                            var timestamp = DateTimeOffset.FromUnixTimeMilliseconds((long)pricePoint[0].GetDouble()).UtcDateTime;
+                            var value = pricePoint[1].GetDecimal();
+
                             var record = new PriceHistory
                             {
                                 CryptoId = id,
-                                Symbol = symbolValue?.ToString() ?? "UNKNOWN",
-                                Timestamp = DateTime.UtcNow,
-                                Price = price
+                                Symbol = symbol?.ToString() ?? "UNKNOWN",
+                                Timestamp = timestamp,
+                                Price = value
                             };
 
+                            priceHistory.Add(record);
                             _db.PriceHistories.Add(record);
-                            await _db.SaveChangesAsync();
                         }
+
+                        await _db.SaveChangesAsync();
+                        return Ok(new { currencyData = content, currencyHistory = priceHistory });
                     }
                 }
                 catch (Exception ex)
@@ -116,7 +141,6 @@ namespace ApiGateway.Controllers
                     return StatusCode(500, "Internal error while processing crypto data.");
                 }
 
-                return Ok(content);
             }
 
             return StatusCode((int)response.StatusCode, "Failed to fetch data");
