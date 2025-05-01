@@ -2,5 +2,9 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/ApiGateway.sln
+ApiGateway.sln
+ApiGateway/obj
+ApiGateway/bin
+ApiGateway/Migrations
 .vs
+
