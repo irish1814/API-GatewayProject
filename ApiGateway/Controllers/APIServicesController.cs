@@ -154,7 +154,7 @@ namespace ApiGateway.Controllers
                 return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
 
             var account = await _db.Accounts.FirstOrDefaultAsync(a => a.WalletId == user.WalletId);
-            return Ok(new { WalletBalance = account);
+            return Ok(new { WalletBalance = account });
         }
         [HttpPost("AddMoney")]
         public async Task<IActionResult> AddMoney([FromForm] decimal amount, [FromHeader(Name = "X-Api-Key")] string apiKey)
