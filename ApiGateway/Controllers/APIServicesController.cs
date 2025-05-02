@@ -145,7 +145,17 @@ namespace ApiGateway.Controllers
 
             return StatusCode((int)response.StatusCode, "Failed to fetch data");
         }
-        
+
+        [HttpGet("WalletBalance")]
+        public async Task<IActionResult> GetWalletBalance([FromHeader(Name = "X-Api-Key")] string apiKey) 
+        {
+            var user = await GetUserByApiKeyAsync(apiKey);
+            if (user == null)
+                return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
+
+            var account = await _db.Accounts.FirstOrDefaultAsync(a => a.WalletId == user.WalletId);
+            return Ok(new { WalletBalance = account);
+        }
         [HttpPost("AddMoney")]
         public async Task<IActionResult> AddMoney([FromForm] decimal amount, [FromHeader(Name = "X-Api-Key")] string apiKey)
         {
