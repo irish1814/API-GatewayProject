@@ -243,7 +243,7 @@ namespace ApiGateway.Controllers
                 return NotFound("Currency not found.");
 
             var coin = data[0];
-            var symbol = coin["symbol"].ToString()?.ToUpper();
+            var symbol = coin["symbol"].ToString()!.ToUpper();
             var priceUsd = decimal.Parse(coin["price_usd"].ToString() ?? "0");
 
             var totalCost = priceUsd * amount;
