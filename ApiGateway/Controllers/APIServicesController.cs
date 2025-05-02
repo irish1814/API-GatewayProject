@@ -146,6 +146,15 @@ namespace ApiGateway.Controllers
             return StatusCode((int)response.StatusCode, "Failed to fetch data");
         }
 
+        /// <summary>
+        /// Retrieves the current wallet balance for the user associated with the provided API key.
+        /// </summary>
+        /// <param name="apiKey">The API key identifying the user. Must be passed in the request header as 'X-Api-Key'.</param>
+        /// <returns>
+        /// Returns an HTTP 200 OK response containing the wallet balance if the user is authenticated.
+        /// Returns HTTP 401 Unauthorized if the API key is invalid or missing.
+        /// Returns HTTP 404 Not Found if the user's account cannot be found.
+        /// </returns>
         [HttpGet("WalletBalance")]
         public async Task<IActionResult> GetWalletBalance([FromHeader(Name = "X-Api-Key")] string apiKey) 
         {
@@ -154,8 +163,22 @@ namespace ApiGateway.Controllers
                 return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
 
             var account = await _db.Accounts.FirstOrDefaultAsync(a => a.WalletId == user.WalletId);
+            if (account == null)
+                return NotFound("Account not found.");
+            
             return Ok(new { WalletBalance = account });
         }
+
+        /// <summary>
+        /// Adds the specified amount of money to the authenticated user's account balance.
+        /// </summary>
+        /// <param name="amount">The amount of money to add. Passed as a form field.</param>
+        /// <param name="apiKey">The API key identifying the user. Must be passed in the request header as 'X-Api-Key'.</param>
+        /// <returns>
+        /// Returns an HTTP 200 OK response with a success message and updated balance on success.
+        /// Returns HTTP 401 Unauthorized if the API key is invalid.
+        /// Returns HTTP 404 Not Found if the user's account cannot be found.
+        /// </returns>
         [HttpPost("AddMoney")]
         public async Task<IActionResult> AddMoney([FromForm] decimal amount, [FromHeader(Name = "X-Api-Key")] string apiKey)
         {
