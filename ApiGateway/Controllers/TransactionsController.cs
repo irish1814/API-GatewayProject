@@ -130,7 +130,7 @@ namespace ApiGateway.Controllers
             return account;
         }
         
-                /// <summary>
+        /// <summary>
         /// Handles cryptocurrency buy/sell transactions for a user.
         /// Validates API key, fetches current currency price, and updates balances accordingly.
         /// </summary>
@@ -151,7 +151,10 @@ namespace ApiGateway.Controllers
             if (user == null)
                 return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
 
+            // Remove account and transactions list of the user from the cache to stay up to date
             await _redisCache.Remove(user.WalletId.ToString());
+            await _redisCache.Remove($"{apiKey}:{user.WalletId.ToString()}");
+            
             var account = _db.Accounts.FirstOrDefault(a => a.WalletId == user.WalletId);
             
             if (account == null)
@@ -287,11 +290,18 @@ namespace ApiGateway.Controllers
             var account = await GetAccountByApiKey(apiKey);
             if (account == null)
                 return NotFound("Account not found.");
-
+            
+            var cachedHistory = await _redisCache.GetTransactionHistory(apiKey, account.WalletId.ToString());
+            if (cachedHistory != null)
+                return Ok(new { TransactionsHistory = cachedHistory });
+            
+            Console.WriteLine("Fetching transaction history from MySQL");
             var userTransactionHistory = await _db.Transactions
                 .Where(t => t.WalletId == account.WalletId)
                 .OrderBy(t => t.DateTime)
                 .ToListAsync();
+            
+            await _redisCache.SetTransactionHistory(apiKey, account.WalletId.ToString(), userTransactionHistory); 
             return Ok(new { TransactionsHistory = userTransactionHistory });
         }
     }

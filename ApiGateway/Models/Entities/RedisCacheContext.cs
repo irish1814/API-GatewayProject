@@ -20,7 +20,53 @@ namespace  ApiGateway.Models.Entities
             _cache = cache;
         }
 
+        /// <summary>
+        /// Retrieves a list of transaction history entries for a specific user from Redis cache.
+        /// </summary>
+        /// <param name="apiKey">The API key used to uniquely identify the user.</param>
+        /// <param name="walletId">The wallet ID associated with the user's account.</param>
+        /// <returns>
+        /// A list of <see cref="Transaction"/> objects if found in Redis; otherwise, <c>null</c>.
+        /// </returns>
+        public async Task<List<Transaction>?> GetTransactionHistory(string apiKey, string walletId)
+        {
+            var cacheKey = $"{apiKey}:{walletId}";  // Create a unique cache key
+
+            Console.WriteLine($"Fetching list of transaction history from Redis.");
+
+            var cachedData = await _cache.GetStringAsync(cacheKey);
+
+            if (string.IsNullOrEmpty(cachedData))
+                return null;
+
+            var transactionList = JsonSerializer.Deserialize<List<Transaction>>(cachedData);
+            return transactionList;
+        }
         
+        /// <summary>
+        /// Stores a list of transaction history entries for a specific user in Redis cache.
+        /// </summary>
+        /// <param name="apiKey">The API key used to uniquely identify the user.</param>
+        /// <param name="walletId">The wallet ID associated with the user's account.</param>
+        /// <param name="transactionList">A list of <see cref="Transaction"/> objects to cache.</param>
+        /// <param name="expiration">
+        /// Optional. The time span after which the cache entry should expire. Defaults to 1 hour if not specified.
+        /// </param>
+        /// <returns>A task representing the asynchronous cache operation.</returns>
+        public async Task SetTransactionHistory(string apiKey, string walletId, List<Transaction> transactionList, TimeSpan? expiration = null)
+        {
+            var cacheKey = $"{apiKey}:{walletId}";  // Unique cache key
+            var json = JsonSerializer.Serialize(transactionList);
+
+            var options = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = expiration ?? TimeSpan.FromHours(1)
+            };
+
+            Console.WriteLine($"Storing list of transaction history in Redis.");
+            await _cache.SetStringAsync(cacheKey, json, options);
+        }
+
         /// <summary>
         /// Retrieves a cached <see cref="User"/> by their API key from Redis.
         /// </summary>
