@@ -7,4 +7,5 @@ ApiGateway/obj
 ApiGateway/bin
 ApiGateway/Migrations
 .vs
-
+.idea
+ApiGateway.sln.DotSettings.user

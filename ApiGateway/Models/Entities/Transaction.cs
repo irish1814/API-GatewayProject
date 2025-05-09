@@ -39,6 +39,11 @@ namespace ApiGateway.Models.Entities
         public decimal PriceAtTransaction { get; init; }
 
         /// <summary>
+        /// Gets or sets the amount of the cryptocurrency bought or sold.
+        /// </summary>
+        public decimal Amount { get; init; }
+        
+        /// <summary>
         /// Gets or sets the date and time when the transaction occurred.
         /// Stored in UTC.
         /// </summary>

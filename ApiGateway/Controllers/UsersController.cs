@@ -1,26 +1,17 @@
 ﻿using ApiGateway.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 
 namespace ApiGateway.Controllers
 {
     /// <summary>
-    /// UsersController provides endpoints for managing user accounts in the Crypto Gateway API.
-    /// It supports registration of new users, secure login with password hashing, and account deletion.
-    /// Each registered user is assigned a unique API key and an associated crypto wallet initialized with zero balances.
-    /// 
-    /// Functionalities include:
-    /// - <c>PUT /api/Users/register</c>: Register a new user and create their wallet.
-    /// - <c>POST /api/Users/login</c>: Authenticate an existing user and retrieve their API key.
-    /// - <c>DELETE /api/Users/delete</c>: Delete a user and their wallet after verifying credentials.
-    /// - <c>OPTIONS /api/Users/options</c>: Retrieve allowed HTTP methods for introspection.
-    /// 
-    /// Passwords are hashed using SHA-256 before storage, and user credentials are verified securely during login and deletion.
-    /// This controller uses the <see cref="CryptoDbContext"/> to manage persistent user and wallet data.
-    /// use this address http://localhost:5182/api/Users to use this API
+    /// Controller for managing user authentication, registration, and deletion in the Crypto Gateway.
+    /// Access this controller using http://hostip:5182/api/Users/{Operation}
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
@@ -28,14 +19,17 @@ namespace ApiGateway.Controllers
     public class UsersController : ControllerBase
     {
         private readonly CryptoDbContext _db;
-
+        private readonly IDistributedCache _redisCache;
+        
         /// <summary>
-        /// Initializes a new instance of the <see cref="UsersController"/> class with the specified database context.
+        /// Initializes a new instance of the <see cref="UsersController"/> class with the specified database context and Redis cache.
         /// </summary>
-        /// <param name="db">The database context used to access user data.</param>
-        public UsersController(CryptoDbContext db)
+        /// <param name="db">The database context used for user and account data.</param>
+        /// <param name="distributedCache">The Redis distributed cache used for session management and user caching.</param>
+        public UsersController(CryptoDbContext db, IDistributedCache distributedCache)
         {
             _db = db;
+            _redisCache = distributedCache;
         }
 
         /// <summary>
@@ -56,7 +50,7 @@ namespace ApiGateway.Controllers
         /// Verifies a plaintext password against a stored SHA-256 hashed password.
         /// </summary>
         /// <param name="enteredPassword">The plaintext password entered by the user.</param>
-        /// <param name="storedHashedPassword">The stored hashed password to compare against.</param>
+        /// <param name="storedHashedPassword">The hashed password stored in the database.</param>
         /// <returns><c>true</c> if the entered password matches the stored hash; otherwise, <c>false</c>.</returns>
         private bool VerifyPassword(string enteredPassword, string storedHashedPassword)
         {
@@ -65,9 +59,9 @@ namespace ApiGateway.Controllers
         }
 
         /// <summary>
-        /// Returns all available HTTP methods supported by the Gateway server for this controller.
+        /// Returns the list of allowed HTTP methods for the users controller.
         /// </summary>
-        /// <returns>200 OK with an Allow header listing supported methods.</returns>
+        /// <returns>HTTP 200 OK with the Allow header listing allowed methods.</returns>
         [HttpOptions("options")]
         public IActionResult GetUsersOptions()
         {
@@ -76,14 +70,15 @@ namespace ApiGateway.Controllers
         }
 
         /// <summary>
-        /// Registers a new user to the Gateway server and create a crypto wallet for him.
+        /// Registers a new user and creates an associated cryptocurrency wallet account.
         /// </summary>
-        /// <param name="username">The username of the new user.</param>
         /// <param name="email">The email address of the new user.</param>
-        /// <param name="password">The password for the new user.</param>
+        /// <param name="username">The desired username for the new user.</param>
+        /// <param name="password">The password for the new user (plaintext).</param>
         /// <returns>
-        /// 200 OK with the successful registered message if input is valid;
-        /// 400 Bad Request if email or password is missing.
+        /// HTTP 200 OK if registration is successful;
+        /// HTTP 400 Bad Request if any field is missing;
+        /// HTTP 409 Conflict if the email is already registered.
         /// </returns>
         [HttpPut("register")]
         public async Task<IActionResult> Register([FromForm] string email, [FromForm] string username, [FromForm] string password)
@@ -128,14 +123,14 @@ namespace ApiGateway.Controllers
         }
 
         /// <summary>
-        /// Authenticates a user to the Gateway server.
+        /// Authenticates a user and stores the user session in Redis cache.
         /// </summary>
-        /// <param name="username">The username of the user (optional if email is provided).</param>
-        /// <param name="email">The email address of the user (optional if username is provided).</param>
-        /// <param name="password">The password of the user.</param>
+        /// <param name="email">The user's email address.</param>
+        /// <param name="password">The user's password (plaintext).</param>
         /// <returns>
-        /// 200 OK with a welcome message and his ApiKey if credentials are valid;
-        /// 401 Unauthorized if credentials are invalid.
+        /// HTTP 200 OK with a login message and API key if credentials are valid;
+        /// HTTP 400 Bad Request if inputs are missing;
+        /// HTTP 401 Unauthorized if credentials are incorrect.
         /// </returns>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromForm] string email, [FromForm] string password)
@@ -150,44 +145,51 @@ namespace ApiGateway.Controllers
                 return Unauthorized("Invalid email or password.");
 
             // Check password
-            if (VerifyPassword(password, user.Password))
-            {
-                return Ok(new { message = "Login successful", apiKey = user.ApiKey });
-            } else {
+            if (!VerifyPassword(password, user.Password))
                 return Unauthorized("Invalid email or password.");
-            }
+            
+            var cacheKey = user.ApiKey.ToString();
+            var userJson = JsonSerializer.Serialize(user);
+
+            await _redisCache.SetStringAsync(
+                key: cacheKey,
+                value: userJson,
+                options: new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+                });
+                
+            return Ok(new { message = "Login successful", apiKey = user.ApiKey });
         }
 
-
         /// <summary>
-        /// Deletes a user from the in-memory user list based on the provided email address.
+        /// Deletes a user and their associated session and wallet data.
         /// </summary>
         /// <param name="email">The email of the user to delete.</param>
+        /// <param name="password">The password for verifying user identity.</param>
         /// <returns>
-        /// 200 OK if the user was found and deleted;
-        /// 404 Not Found if no user with the specified email exists.
+        /// HTTP 200 OK if the user is deleted successfully;
+        /// HTTP 401 Unauthorized if credentials are incorrect;
+        /// HTTP 404 Not Found if no user is found.
         /// </returns>
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteUser([FromQuery] string email, [FromForm] string password)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null)
-                return Unauthorized("Invalid email or password.");
-
+            var user = await _db.Users
+                .Where(u => u.Email == email)
+                .FirstOrDefaultAsync();
+            
             // Check password
-            if (VerifyPassword(password, user.Password))
-            {
-                var account = await _db.Accounts.FirstOrDefaultAsync(a => a.WalletId == user.WalletId);
-                if (account != null)
-                    _db.Accounts.Remove(account);
-                
-                _db.Users.Remove(user);
-                await _db.SaveChangesAsync();
-                return Ok($"User {user.Name} was deleted successfully");
-            } else {
+            if (user == null || !VerifyPassword(password, user.Password))
                 return Unauthorized("Invalid email or password.");
-            }
+            
+            await _redisCache.RemoveAsync(key: user.ApiKey.ToString());
+            await _db.Users
+                    .Where(u => u.WalletId == user.WalletId)
+                    .ExecuteDeleteAsync();
+            await _db.SaveChangesAsync();
+            
+            return Ok($"User {user.Name} was deleted successfully");
         }
-
     }
 }
