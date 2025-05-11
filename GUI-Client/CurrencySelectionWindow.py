@@ -1,8 +1,8 @@
-
+import requests
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidget, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt
 from CurrencyDataWindow import CurrencyListWindow
-from Settings import API_KEY
+from Settings import API_KEY, API_SERVER
 
 
 class CurrencySelectionWindow(QWidget):
@@ -11,8 +11,10 @@ class CurrencySelectionWindow(QWidget):
         self.setWindowTitle("Choose Crypto currency")
         self.setFixedSize(400, 550)
         self.API_KEY = API_KEY
+        response = requests.get(API_SERVER + "APIServices/SupportedCurrencies", headers={"X-Api-Key": self.API_KEY})
+        if response.status_code == 200:
+            self.ID_MAP = response.json().get("supportedCurrencies")
 
-        # עיצוב כללי
         self.setStyleSheet("""
             QWidget {
                 background-color: #1e1f26;  /* כחול כהה מודרני */
@@ -66,25 +68,19 @@ class CurrencySelectionWindow(QWidget):
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(20, 20, 20, 20)
 
-        # כפתור חזור בצד שמאל למעלה
-        top_layout = QHBoxLayout()
-        self.back_button = QPushButton("Back")
-        # self.back_button.clicked.connect(self.go_back)
-        top_layout.addWidget(self.back_button)
-        top_layout.addStretch()
-        main_layout.addLayout(top_layout)
+        # top_layout = QHBoxLayout()
+        # self.signout_button = QPushButton("Sign Out")
+        # self.signout_button.clicked.connect(self.signout)
+        # top_layout.addWidget(self.signout_button)
+        # top_layout.addStretch()
+        # main_layout.addLayout(top_layout)
 
-        # כותרת
         label = QLabel("Choose Crypto Currency")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(label)
 
-        # רשימת מטבעות
         self.crypto_list = QListWidget()
-        self.crypto_list.addItems([
-            "Bitcoin (BTC)", "Ethereum (ETH)", "Ripple (XRP)",
-            "Litecoin (LTC)", "Dogecoin (DOGE)", "Cardano (ADA)"
-        ])
+        self.crypto_list.addItems([name for name in self.ID_MAP.keys()])
         self.crypto_list.itemDoubleClicked.connect(self.open_currency_detail)
         main_layout.addWidget(self.crypto_list)
 
@@ -92,20 +88,13 @@ class CurrencySelectionWindow(QWidget):
 
     def open_currency_detail(self, item):
         name = item.text()
-        id_map = {
-            "Bitcoin (BTC)": 90,
-            "Ethereum (ETH)": 80,
-            "Ripple (XRP)": 70,
-            "Litecoin (LTC)": 60,
-            "Dogecoin (DOGE)": 50,
-            "Cardano (ADA)": 40,
-        }
-        crypto_id = id_map.get(name, 0)
+
+        crypto_id = self.ID_MAP.get(name, 0)
         self.detail_window = CurrencyListWindow(name, crypto_id)
         self.detail_window.show()
         self.close()
 
-    # def go_back(self):
-    #     self.login_window = LoginWindow()
+    # def signout(self):
+    #     self.API_KEY = ""
     #     self.login_window.show()
     #     self.close()

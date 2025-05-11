@@ -73,21 +73,16 @@ namespace ApiGateway.Controllers
         /// Returns the API response as-is if successful. Also appends the current price and symbol to
         /// the local in-memory history list.
         /// </returns>
-        [HttpPost("Currency")]
+        [HttpPost("CurrencyInfo")]
         public async Task<IActionResult> GetCryptoCurrencyInfo([FromForm] int id, [FromHeader(Name = "X-Api-Key")] string apiKey)
         {
-            if (string.IsNullOrEmpty(apiKey))
-                return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
-            
             if (string.IsNullOrEmpty(id.ToString()))
                 return BadRequest("Currency ID is required.");    
             
             var user = await GetUserByApiKey(apiKey);
             
-            if (user == null)
-            {
+            if (string.IsNullOrEmpty(apiKey) || user == null)
                 return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
-            }
 
             // Step 1: Fetch Currency data from CoinLore
             var client = new HttpClient();
@@ -158,6 +153,32 @@ namespace ApiGateway.Controllers
             }
 
             return StatusCode((int)response.StatusCode, "Failed to fetch data");
+        }
+
+        /// <summary>
+        /// Retrieves a list of supported cryptocurrencies along with their
+        /// respective values for the external API.
+        /// </summary>
+        /// <param name="apiKey">The API key identifying the user.
+        /// Must be passed in the request header as 'X-Api-Key'.</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a dictionary of supported currencies
+        /// if the API key is valid; otherwise, returns <c>Unauthorized</c>.
+        /// </returns>
+        [HttpGet("SupportedCurrencies")]
+        public async Task<IActionResult> GetCurrencyList([FromHeader(Name = "X-Api-Key")] string apiKey)
+        {            
+            var user = await GetUserByApiKey(apiKey);
+            if(string.IsNullOrEmpty(apiKey) || user == null)
+                return Unauthorized("Invalid or missing API key: X-Api-Key=YOUR-API-KEY");
+            
+            var currencyList = new Dictionary<string, int>
+            {
+                {"Bitcoin (BTC)", 90}, {"Ethereum (ETH)", 80}, {"Solana (SOL)", 48543},
+                {"Ripple (XRP)", 58}, {"Litecoin (LTC)", 1}, {"Cardano (ADA)", 257}
+            };
+            
+            return Ok(new { SupportedCurrencies = currencyList });
         }
         
         /// <summary>

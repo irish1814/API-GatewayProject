@@ -5,18 +5,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QMessageBox, QHBoxLayout, QSpinBox, QSlider, QInputDialog
 )
 from PyQt6.QtCore import Qt
-from Settings import API_KEY
+from Settings import API_KEY, API_SERVER
 
 
 Wallet: {str, int} = {}
-
-# Map from ID to a wallet key (adjust as needed)
-ID_TO_COIN = {
-    90: "bitcoin",
-    80: "ethereum",
-    70: "litecoin",
-    60: "ripple"
-}
 
 
 class BuySellWindow(QWidget):
@@ -24,7 +16,11 @@ class BuySellWindow(QWidget):
         super().__init__()
         self.wallet = Wallet
         self.API_KEY = API_KEY
-        self.ID_TO_COIN = ID_TO_COIN
+
+        response = requests.get(API_SERVER + "APIServices/SupportedCurrencies", headers={"X-Api-Key": self.API_KEY})
+        if response.status_code == 200:
+            self.ID_MAP = response.json().get("supportedCurrencies")
+
         self.currency_id = currency_id
 
         self.setWindowTitle(f"{action} {currency_data['name']}")
@@ -33,6 +29,7 @@ class BuySellWindow(QWidget):
         self.action = action.lower()
 
         self.add_money_button = QPushButton("Add Money")
+        self.confirm_button = QPushButton("Confirm Transaction")
         self.back_button = QPushButton("Back")
         self.label = QLabel(f"{self.action.capitalize()} - Price: ${self.currency_data['price_usd']}")
         self.amount_input = QSpinBox()
@@ -62,8 +59,6 @@ class BuySellWindow(QWidget):
         top_layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignLeft)
         top_layout.addStretch()
         layout.addLayout(top_layout)
-
-
 
         self.label.setFont(QFont("Arial", 14))
         layout.addWidget(self.label)
@@ -109,7 +104,7 @@ class BuySellWindow(QWidget):
             dollar_balance = self.wallet.get("usd_balance", 0)
             amount_dollars = (percent / 100) * dollar_balance
             units = amount_dollars / float(self.currency_data['price_usd'])
-        else:  # sell
+        else:
             coin_balance = self.wallet.get(self.currency_data['id'], 0)
             units = (percent / 100) * coin_balance
 
@@ -117,7 +112,7 @@ class BuySellWindow(QWidget):
         self.update_total_price()
 
     def update_wallet_local(self, currency_id: int, amount: float, action: str):
-        coin_key = self.ID_TO_COIN.get(currency_id, "otherCrypto")
+        coin_key = self.ID_MAP.get(currency_id, None)
         price_per_unit = float(self.currency_data["price_usd"])
         usd_change = amount * price_per_unit
 
@@ -136,12 +131,12 @@ class BuySellWindow(QWidget):
 
     def refresh_wallet_display(self):
         try:
-            url = "http://localhost:5182/api/APIServices/WalletBalance"
+            url = API_SERVER + f"Transactions/WalletBalance"
             response = requests.get(url, headers={"X-Api-Key": self.API_KEY})
             if response.status_code == 200:
                 self.wallet.update(response.json().get('walletBalance'))
                 usd_balance = self.wallet.get("balance", 0)
-                coin_balance = self.wallet.get(self.ID_TO_COIN.get(self.currency_id, None), 0)
+                coin_balance = self.wallet.get(self.ID_MAP.get(self.currency_id, None), 0)
                 self.wallet_status_label.setText(
                     f"Wallet: ${usd_balance:.2f}\n\n{self.currency_data['name']}: {coin_balance:.2f}"
                 )
@@ -168,7 +163,7 @@ class BuySellWindow(QWidget):
     def confirm_transaction(self):
         amount = self.amount_input.value()
         try:
-            url = f"http://localhost:5182/api/APIServices/{self.action}"
+            url = API_SERVER + f"Transactions/{self.action}"
             data = {
                 "id": self.currency_data["id"],
                 "amount": amount
@@ -178,7 +173,6 @@ class BuySellWindow(QWidget):
                 QMessageBox.information(self, "Success", f"{self.action.capitalize()} completed successfully.")
                 self.refresh_wallet_display()
                 self.update_wallet_local(self.currency_data["id"], amount, self.action)
-                self.close()
             else:
                 QMessageBox.warning(self, "Failed", f"{self.action.capitalize()} failed.")
         except Exception as e:

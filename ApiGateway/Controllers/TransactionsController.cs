@@ -284,6 +284,18 @@ namespace ApiGateway.Controllers
             return Ok(new { WalletBalance = account });
         }
         
+        /// <summary>
+        /// Retrieves the transaction history for the authenticated user's wallet.
+        /// It attempts to fetch the data from Redis cache first, and falls back to the database if not found.
+        /// </summary>
+        /// <param name="apiKey">
+        /// The API key provided in the request header (<c>X-Api-Key</c>).
+        /// This key is used to authenticate the user and determine the wallet ID.
+        /// </param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the transaction history if found;
+        /// otherwise, returns <c>NotFound</c> if the account is missing or <c>Unauthorized</c> if the API key is invalid.
+        /// </returns>
         [HttpGet("TransactionsHistory")]
         public async Task<IActionResult> GetTransactionHistory([FromHeader(Name = "X-Api-Key")] string apiKey)
         {

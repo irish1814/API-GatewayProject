@@ -11,7 +11,6 @@ import json
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt
 
-# from CurrencySelectionWindow import CurrencySelectionWindow
 from AIWindow import AIChatWindow
 from Transactions import BuySellWindow
 from Settings import API_KEY
@@ -22,19 +21,17 @@ class CurrencyListWindow(QWidget):
         super().__init__()
         self.API_KEY = API_KEY
         self.setWindowTitle(currency_name)
-        self.setFixedSize(500, 550)
+        self.setFixedSize(1100, 900)
         self.currency_id = currency_id
 
         self.layout = QVBoxLayout()
         self.setStyleSheet("background-color: #1e1f26; color: #FFD700;")
 
-        # כפתור חזור למעלה
         self.back_button = QPushButton("Back")
         # self.back_button.clicked.connect(self.go_back)
         self.back_button.setStyleSheet("background-color: gray; font-size: 10px;")
         self.layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        # תווית מידע
         self.info_label = QLabel("Loading...")
         self.info_label.setStyleSheet("font-size: 14px; padding: 4px;")
         self.layout.addWidget(self.info_label)
@@ -75,8 +72,8 @@ class CurrencyListWindow(QWidget):
 
     def load_currency_data(self):
         try:
-            response = requests.post("http://localhost:5182/api/APIServices/Currency",
-                                     data={"id": self.currency_id}, headers={"X-Api-Key": self.API_KEY})
+            response = requests.post("http://localhost:5182/api/APIServices/CurrencyInfo", 
+                                    data={"id": self.currency_id}, headers={"X-Api-Key": self.API_KEY})
             if response.status_code == 200:
                 data = json.loads(response.json()['currencyData'])[0]
                 self.info_label.setText(f"Rank: {data['rank']} | Current price: {data['price_usd']}$")

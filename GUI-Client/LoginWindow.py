@@ -1,4 +1,3 @@
-from CurrencySelectionWindow import CurrencySelectionWindow
 from PyQt6.QtWidgets import (
     QApplication, QLineEdit,
     QMessageBox, QCheckBox,
@@ -22,7 +21,8 @@ class LoginWindow(QWidget):
         self.password_input = QLineEdit()
         self.show_password_checkbox = QCheckBox("Show password")
         self.login_button = QPushButton("Login")
-        self.currency_window = CurrencySelectionWindow()
+        with open(".env", "w") as f:
+            f.write("API_KEY=''")
 
         self.setWindowTitle("Welcome to trading system")
         self.setFixedSize(400, 550)
