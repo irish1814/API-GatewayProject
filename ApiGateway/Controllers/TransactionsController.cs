@@ -283,7 +283,7 @@ namespace ApiGateway.Controllers
             
             return Ok(new { WalletBalance = account });
         }
-
+        
         [HttpGet("TransactionsHistory")]
         public async Task<IActionResult> GetTransactionHistory([FromHeader(Name = "X-Api-Key")] string apiKey)
         {

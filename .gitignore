@@ -9,3 +9,5 @@ ApiGateway/Migrations
 .vs
 .idea
 ApiGateway.sln.DotSettings.user
+GUI-Client/.venv
+GUI-Client/.env
