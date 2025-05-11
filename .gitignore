@@ -11,3 +11,4 @@ ApiGateway/Migrations
 ApiGateway.sln.DotSettings.user
 GUI-Client/.venv
 GUI-Client/.env
+GUI-Client/__pycache__
