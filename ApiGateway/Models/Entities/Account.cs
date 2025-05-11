@@ -17,22 +17,22 @@ namespace ApiGateway.Models.Entities
         public Guid WalletId { get; init; }
 
         /// <summary>
-        /// The balance of Bitcoin for the user.
+        /// The balance of Bitcoin (BTC) for the user.
         /// </summary>
         [Column("Bitcoin")]
         public decimal Bitcoin { get; set; }
 
         /// <summary>
-        /// The balance of Ethereum for the user.
+        /// The balance of Ethereum (ETH) for the user.
         /// </summary>
         [Column("Ethereum")]
         public decimal Ethereum { get; set; }
 
         /// <summary>
-        /// The balance of Litecoin for the user.
+        /// The balance of Solana (SOL) for the user.
         /// </summary>
-        [Column("Litecoin")]
-        public decimal Litecoin { get; set; }
+        [Column("Solana")]
+        public decimal Solana { get; set; }
 
         /// <summary>
         /// The balance of Ripple (XRP) for the user.
@@ -41,10 +41,16 @@ namespace ApiGateway.Models.Entities
         public decimal Ripple { get; set; }
 
         /// <summary>
-        /// The balance of any other cryptocurrency for the user.
+        /// The balance of Litecoin (LTC) cryptocurrency for the user.
         /// </summary>
-        [Column("OtherCrypto")]
-        public decimal OtherCrypto { get; set; }
+        [Column("Litecoin")]
+        public decimal Litecoin { get; set; }
+
+        /// <summary>
+        /// The balance of Cardano (ADA) cryptocurrency for the user.
+        /// </summary>
+        [Column("Litecoin")]
+        public decimal Cardano { get; set; }
 
         /// <summary>
         /// The USD equivalent balance for the user.
