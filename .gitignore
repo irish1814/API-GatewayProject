@@ -7,6 +7,7 @@ ApiGateway/obj
 ApiGateway/bin
 ApiGateway/Migrations
 .vs
+.vscode
 .idea
 ApiGateway.sln.DotSettings.user
 GUI-Client/.venv
