@@ -149,7 +149,7 @@ class BuySellWindow(QWidget):
         amount, ok = QInputDialog.getInt(self, "Add Money", "Enter amount to add:", min=1)
         if ok:
             try:
-                url = "http://localhost:5182/api/APIServices/AddMoney"
+                url = API_SERVER + "Transactions/AddMoney"
                 data = {"amount": amount}
                 response = requests.post(url, headers={"X-Api-Key": self.API_KEY}, data=data)
                 if response.status_code == 200:

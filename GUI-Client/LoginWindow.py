@@ -1,3 +1,4 @@
+from CurrencySelectionWindow import CurrencySelectionWindow
 from PyQt6.QtWidgets import (
     QApplication, QLineEdit,
     QMessageBox, QCheckBox,
@@ -17,6 +18,7 @@ class LoginWindow(QWidget):
         super().__init__()
         self.register_window = RegisterWindow()
         self.form_container = QWidget(self)
+        self.currency_window = CurrencySelectionWindow()
         self.username_input = QLineEdit()
         self.password_input = QLineEdit()
         self.show_password_checkbox = QCheckBox("Show password")

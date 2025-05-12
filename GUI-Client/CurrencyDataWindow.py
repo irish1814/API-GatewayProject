@@ -4,7 +4,7 @@ import traceback
 
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QPushButton,
+    QWidget, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox,
     QVBoxLayout, QMessageBox, QHBoxLayout, QFrame
 )
 import json
@@ -13,7 +13,7 @@ from PyQt6.QtCore import Qt
 
 from AIWindow import AIChatWindow
 from Transactions import BuySellWindow
-from Settings import API_KEY
+from Settings import API_KEY, API_SERVER
 
 
 class CurrencyListWindow(QWidget):
@@ -57,11 +57,13 @@ class CurrencyListWindow(QWidget):
         self.buy_button.clicked.connect(self.open_buy)
         self.sell_button = QPushButton("Sell")
         self.sell_button.clicked.connect(self.open_sell)
+        self.transactions_button = QPushButton("Transactions")
+        self.transactions_button.clicked.connect(self.open_transaction)
         self.ai_button = QPushButton("AI Agent")
         self.ai_button.clicked.connect(self.open_ai_chat)
 
 
-        for btn in [self.buy_button, self.sell_button, self.ai_button]:
+        for btn in [self.buy_button, self.sell_button, self.transactions_button, self.ai_button]:
             btn.setStyleSheet("background-color: #FFD700; color: black; font-weight: bold; padding: 8px;")
             btn_layout.addWidget(btn)
 
@@ -136,6 +138,44 @@ class CurrencyListWindow(QWidget):
     def open_sell(self):
         self.sell_window = BuySellWindow("Sell", self.currency_data, self.currency_id)
         self.sell_window.show()
+
+    def open_transaction(self):
+        try:
+            response = requests.get(API_SERVER + "Transactions/TransactionsHistory", headers={"X-Api-Key": self.API_KEY})
+            response.raise_for_status()
+            data = response.json()
+            transactions = data.get("transactionsHistory", [])
+
+            if not transactions:
+                QMessageBox.information(self, "No Transactions", "No transactions found for this user.")
+                return
+
+            # Create a new window
+            self.transaction_window = QWidget()
+            self.transaction_window.setWindowTitle("Transaction History")
+            layout = QVBoxLayout(self.transaction_window)
+
+            table = QTableWidget()
+            table.setColumnCount(6)
+            table.setHorizontalHeaderLabels(["Blockchain ID", "Currency", "Type", "Amount", "Total Price", "DateTime"])
+
+            table.setRowCount(len(transactions))
+            for row, tx in enumerate(transactions):
+                table.setItem(row, 0, QTableWidgetItem(str(tx.get("id", ""))))
+                table.setItem(row, 1, QTableWidgetItem(tx.get("cryptoId", "")))
+                table.setItem(row, 2, QTableWidgetItem(tx.get("type", "")))
+                table.setItem(row, 3, QTableWidgetItem(str(tx.get("amount", ""))))
+                table.setItem(row, 4, QTableWidgetItem(str(tx.get("priceAtTransaction"))))
+                table.setItem(row, 5, QTableWidgetItem(tx.get("dateTime", "").split("T")[0]))
+
+            layout.addWidget(table)
+            self.transaction_window.setLayout(layout)
+            self.transaction_window.resize(600, 600)
+            self.transaction_window.show()
+
+        except requests.exceptions.RequestException as e:
+            QMessageBox.critical(self, "Error", f"Failed to fetch transactions:\n{e}")
+
 
     # def go_back(self):
     #     self.select_window = CurrencySelectionWindow()
