@@ -109,10 +109,11 @@ namespace ApiGateway.Controllers
                 WalletId = newUser.WalletId,
                 Balance = 0,
                 Bitcoin = 0,
+                Solana = 0,
                 Ethereum = 0,
                 Ripple = 0,
                 Litecoin = 0,
-                OtherCrypto = 0,
+                Cardano = 0,
              };
 
             await _db.Accounts.AddAsync(newAccount);

@@ -41,9 +41,10 @@ namespace ApiGateway.Controllers
             {
                 case "BTC": account.Bitcoin += amount; break;
                 case "ETH": account.Ethereum += amount; break;
-                case "LTC": account.Litecoin += amount; break;
+                case "SOL": account.Solana += amount; break;
                 case "XRP": account.Ripple += amount; break;
-                default: account.OtherCrypto += amount; break;
+                case "LTC": account.Litecoin += amount; break;
+                case "ADA": account.Cardano += amount; break;
             }
         }
 
@@ -61,10 +62,12 @@ namespace ApiGateway.Controllers
             return symbol switch
             {
                 "BTC" => account.Bitcoin >= required,
+                "SOL" => account.Solana >= required,
                 "ETH" => account.Ethereum >= required,
-                "LTC" => account.Litecoin >= required,
                 "XRP" => account.Ripple >= required,
-                _ => account.OtherCrypto >= required
+                "LTC" => account.Litecoin >= required,
+                "ADA" => account.Cardano >= required,
+                _ => false
             };
         }
         

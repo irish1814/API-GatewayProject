@@ -49,7 +49,7 @@ namespace ApiGateway.Models.Entities
         /// <summary>
         /// The balance of Cardano (ADA) cryptocurrency for the user.
         /// </summary>
-        [Column("Litecoin")]
+        [Column("Cardano")]
         public decimal Cardano { get; set; }
 
         /// <summary>
