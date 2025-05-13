@@ -6,19 +6,23 @@ using Microsoft.Extensions.Caching.Distributed;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
 
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddEndpointsApiExplorer();        // 👈 Required for minimal APIs and Swagger
+builder.Services.AddSwaggerGen();                  // 👈 Add Swagger generator
+
 builder.Services.AddScoped<CryptoDbContext>();
 builder.Services.AddScoped<RedisCacheContext>();
 
-
+// MySQL Connection string
 string? connectionString = builder.Configuration.GetConnectionString("APIServer");
 builder.Services.AddDbContextPool<CryptoDbContext>(options => options
     .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-builder.Services.AddStackExchangeRedisCache(redisOptions =>
-{
+// Redis Connection string
+builder.Services.AddStackExchangeRedisCache(redisOptions => {
     redisOptions.Configuration = builder.Configuration.GetConnectionString("Redis");
 });
 
@@ -28,9 +32,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();                              // 👈 Enable Swagger middleware
+    app.UseSwaggerUI();                            // 👈 Enable Swagger UI
 }
 
-// Connection checks before app.Run()
+// Databases Connection checks before app.Run()
 using (var scope = app.Services.CreateScope())
 {
     var serviceProvider = scope.ServiceProvider;
@@ -74,9 +80,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthorization();
 
 app.MapControllerRoute(
